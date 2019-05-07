@@ -1,8 +1,8 @@
 #! /usr/bin/env python3
 
 import vcf
-
 import os
+import subprocess
 
 __author__ = 'Sarah Meitz'
 
@@ -13,8 +13,13 @@ class Assignment2:
         ## Check if pyvcf is installed
         print("PyVCF version: %s" % vcf.VERSION)
 
-        self.chr22 = os.path.join(os.getcwd(), "chr22.vcf")
-        self.chr21 = os.path.join(os.getcwd(), "chr21.vcf")
+        self.chr22 = os.path.join(os.getcwd(), "chr22_new.vcf")
+        self.chr21 = os.path.join(os.getcwd(), "chr21_new.vcf")
+
+        if not os.path.isfile(self.chr22):
+            subprocess.call(["wget", "http://hmd.ait.ac.at/medgen2019/chr21_new.vcf"])
+        if not os.path.isfile(self.chr21):
+            subprocess.call(["wget", "http://hmd.ait.ac.at/medgen2019/chr22_new.vcf"])
 
 
     def get_average_quality_of_file(self):
@@ -51,16 +56,22 @@ class Assignment2:
         Return the variant caller name
         :return: 
         '''
-        # no idea where this information is
-        # should be in the header but it isn't
+
+        vcf_chr22 = vcf.Reader(open(self.chr22), "r")
+        for record in vcf_chr22:
+           vcaller = record.INFO["callsetnames"]
+        print("Variant caller name: ", vcaller[1])
 
     def get_human_reference_version(self):
         '''
         Return the genome reference version
         :return: 
         '''
-        # no idea where this information is 
-        # should be in the header but it isn't
+        vcf_chr22 = vcf.Reader(open(self.chr22), "r")
+        for record in vcf_chr22:
+            href = record.INFO
+
+        print("Human reference genome: ", href["difficultregion"][0])
 
         
     def get_number_of_indels(self):
@@ -107,13 +118,15 @@ class Assignment2:
         Creates one VCF containing all variants of chr21 and chr22
         :return:
         '''
-        # combine both files - not done with vcf writer as there are problems with chr21 file
-        files = [self.chr22, self.chr21]
-        with open("chr21_chr22.vcf", "w") as outfile:
-            for filenames in files:
-                with open(filenames) as infile:
-                    for line in infile:
-                        outfile.write(line)
+
+
+        vcf_chr21 = vcf.Reader(open(self.chr21), "r")
+        vcf_chr22 = vcf.Reader(open(self.chr22), "r")
+        vcf_Writer = vcf.Writer(open("chr21_chr22.vcf", "w"), vcf_chr22)
+        for record in vcf_chr22:
+            vcf_Writer.write_record(record)
+        for record in vcf_chr21:
+            vcf_Writer.write_record(record)
 
         combined = os.path.join(os.getcwd(), "chr21_chr22.vcf")
         vcf_combined = vcf.Reader(open(combined), "r")
@@ -124,11 +137,11 @@ class Assignment2:
         
 
     def print_summary(self):
-        print("Print all results here")
+
         self.get_average_quality_of_file()
         self.get_total_number_of_variants_of_file()
-        #self.get_variant_caller_of_vcf()
-        #self.get_human_reference_version()
+        self.get_variant_caller_of_vcf()
+        self.get_human_reference_version()
         self.get_number_of_indels()
         self.get_number_of_snvs()
         self.get_number_of_heterozygous_variants()
